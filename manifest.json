@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TCU Portal Search Helper",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Portal page text search and highlight helper.",
   "action": {
     "default_title": "Portal Search",
@@ -10,10 +10,9 @@
   "permissions": ["activeTab"],
   "content_scripts": [
     {
-      "matches": ["https://websrv.tcu.ac.jp/tcu_web_v3/*"],
+      "matches": ["*://websrv.tcu.ac.jp/*"],
       "js": ["content.js"],
-      "run_at": "document_idle",
-      "all_frames": true
+      "run_at": "document_idle"
     }
   ]
 }
