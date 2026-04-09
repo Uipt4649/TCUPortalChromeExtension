@@ -7,6 +7,104 @@ const searchState = {
   keyword: "",
 };
 
+function ensurePortalUiStyle() {
+  if (document.getElementById("tcu-portal-ui-style")) {
+    return;
+  }
+
+  const style = document.createElement("style");
+  style.id = "tcu-portal-ui-style";
+  style.textContent = `
+    :root {
+      --tcu-bg: #f5f7fb;
+      --tcu-card: #ffffff;
+      --tcu-text: #111827;
+      --tcu-muted: #475569;
+      --tcu-line: #dce5f0;
+      --tcu-accent: #0f4c81;
+      --tcu-accent-soft: #e8f1ff;
+    }
+
+    body {
+      background: linear-gradient(180deg, #eef3fb 0%, var(--tcu-bg) 100%) !important;
+      color: var(--tcu-text) !important;
+      font-family: "Hiragino Sans", "Yu Gothic", "Avenir Next", sans-serif !important;
+      line-height: 1.55 !important;
+      letter-spacing: 0.1px !important;
+    }
+
+    #main, #contents, #content, #container, .container, .main, .contents, .wrapper {
+      max-width: 1200px !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    .news, .box, .panel, .module, .section, .content-box, .list-box,
+    [class*="news"], [class*="notice"], [id*="news"], [id*="notice"] {
+      background: var(--tcu-card) !important;
+      border: 1px solid var(--tcu-line) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08) !important;
+      overflow: hidden !important;
+    }
+
+    table {
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+      width: 100% !important;
+      background: var(--tcu-card) !important;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e8edf5 !important;
+      padding: 8px 10px !important;
+      vertical-align: top !important;
+      color: var(--tcu-text) !important;
+      font-size: 14px !important;
+    }
+
+    tr:nth-child(even) td {
+      background: #fbfdff !important;
+    }
+
+    tr:hover td {
+      background: var(--tcu-accent-soft) !important;
+    }
+
+    a {
+      color: var(--tcu-accent) !important;
+      text-decoration-thickness: 1.5px !important;
+      text-underline-offset: 2px !important;
+      font-weight: 600 !important;
+    }
+
+    .new, .label-new, [class*="new"] {
+      border-radius: 999px !important;
+      padding: 2px 8px !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      background: #ffe7e7 !important;
+      color: #9f1239 !important;
+    }
+
+    input, select, textarea, button {
+      font-family: inherit !important;
+      font-size: 14px !important;
+    }
+
+    button, input[type="button"], input[type="submit"] {
+      border-radius: 8px !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -168,7 +266,86 @@ function getResultPayload() {
   };
 }
 
+function canSafelyClick(element) {
+  const tag = element.tagName;
+  if (tag === "BUTTON" || tag === "SUMMARY") {
+    return true;
+  }
+
+  if (tag === "A") {
+    const href = (element.getAttribute("href") || "").trim().toLowerCase();
+    if (!href || href === "#" || href.startsWith("javascript:")) {
+      return true;
+    }
+    return false;
+  }
+
+  return element.getAttribute("role") === "button";
+}
+
+function collectExpandableElements() {
+  const candidates = Array.from(
+    document.querySelectorAll("button, summary, a, [role='button'], [aria-expanded='false']")
+  );
+  const keywordPattern = /詳細|表示|開く|もっと|全て|一覧|お知らせ/i;
+  const seen = new Set();
+  const result = [];
+
+  candidates.forEach((element) => {
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+    if (seen.has(element)) {
+      return;
+    }
+    if (!canSafelyClick(element)) {
+      return;
+    }
+
+    const label = (
+      element.innerText ||
+      element.getAttribute("aria-label") ||
+      element.getAttribute("title") ||
+      ""
+    ).trim();
+    const collapsed = element.getAttribute("aria-expanded") === "false";
+
+    if (!collapsed && !keywordPattern.test(label)) {
+      return;
+    }
+
+    seen.add(element);
+    result.push(element);
+  });
+
+  return result;
+}
+
+async function expandAndSearch(keyword) {
+  const clickable = collectExpandableElements();
+  clickable.forEach((element) => {
+    element.click();
+  });
+
+  if (clickable.length > 0) {
+    await sleep(700);
+  }
+
+  highlightKeyword(keyword);
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "deepSearch") {
+    expandAndSearch((message.keyword || "").trim())
+      .then(() => {
+        sendResponse(getResultPayload());
+      })
+      .catch(() => {
+        sendResponse(getResultPayload());
+      });
+    return true;
+  }
+
   switch (message?.type) {
     case "search":
       highlightKeyword((message.keyword || "").trim());
@@ -197,3 +374,5 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   return true;
 });
+
+ensurePortalUiStyle();

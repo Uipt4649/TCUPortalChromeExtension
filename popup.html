@@ -7,16 +7,35 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <main class="popup">
-      <h1 class="title">ページ内検索</h1>
-      <input id="searchInput" class="search-input" type="text" placeholder="キーワードを入力" />
-      <div class="buttons">
-        <button id="searchButton" type="button">検索</button>
-        <button id="prevButton" type="button">前へ</button>
-        <button id="nextButton" type="button">次へ</button>
-        <button id="clearButton" type="button" class="secondary">クリア</button>
-      </div>
-      <p id="statusText" class="status">キーワードを入力してください</p>
+    <main class="popup" aria-live="polite">
+      <header class="header">
+        <h1 class="title">TCU Portal Search</h1>
+        <p class="subtitle">お知らせや表示中テキストをすばやく検索</p>
+      </header>
+
+      <section class="panel">
+        <label for="searchInput" class="field-label">キーワード</label>
+        <input id="searchInput" class="search-input" type="text" placeholder="例: キャリア, 奨学金" />
+
+        <div class="action-grid">
+          <button id="searchButton" type="button" class="primary">この画面を検索</button>
+          <button id="deepSearchButton" type="button" class="accent">詳細も検索</button>
+        </div>
+
+        <div class="nav-grid">
+          <button id="prevButton" type="button" class="secondary">前へ</button>
+          <button id="nextButton" type="button" class="secondary">次へ</button>
+          <button id="clearButton" type="button" class="ghost">クリア</button>
+        </div>
+
+        <div class="status-wrap">
+          <p id="statusText" class="status">キーワードを入力してください</p>
+        </div>
+
+        <p class="hint">うまく見つからないときは「詳細も検索」を使ってください。</p>
+      </section>
+      <div class="footer-line"></div>
+      <p class="footer-note">Portal page only</p>
     </main>
     <script src="popup.js"></script>
   </body>
